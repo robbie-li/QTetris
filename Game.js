@@ -1,13 +1,16 @@
+Qt.include("Constants.js");
+Qt.include("Block.js");
+
 var boardCellComponent = Qt.createComponent("BoardCell.qml");
 
 var boardCells = [];
 
-function cellIndex(x, y) {
-  return x + Constants.MAX_COLUMN_DEFAULT * y;
+function cellIndex(col, row) {
+  return col + Constants.MAX_COLUMN_DEFAULT * row;
 }
 
-function blockIndex(x, y) {
-  return x + y * 4;
+function blockIndex(col, row) {
+  return col +  4 * row;
 }
 
 function pos_x(index) {
@@ -34,7 +37,82 @@ function resetBoards() {
   }
 }
 
-function packBlock(block) {
+function deleteFullRow(row) {
+  for(var col = 0; col < Constants.MAX_COLUMN_DEFAULT; ++col) {
+    boardCells[cellIndex(col, row)].taken = false;
+    boardCells[cellIndex(col, row)].opacity = 0.0;
+  }
+}
+
+function moveRowDown(row, move_down) {
+  for(var col = 0; col < Constants.MAX_COLUMN_DEFAULT; ++col) {
+    if(boardCells[cellIndex(col, row)].taken) {
+      console.log("move down block: (" + col + "," + row + "), down:" + move_down);
+      boardCells[cellIndex(col, row)].taken = false;
+      boardCells[cellIndex(col, row)].opacity = 0.0;
+
+      boardCells[cellIndex(col, row+move_down)].taken = true;
+      boardCells[cellIndex(col, row+move_down)].opacity = 0.8;
+      boardCells[cellIndex(col, row+move_down)].color = boardCells[cellIndex(col, row)].color;
+    }
+  }  
+}
+
+function processRows(full_rows, not_full_rows) {
+  for(var index =0; index < full_rows.length; ++index) {
+    var row = full_rows[index];
+    deleteFullRow(row);
+  }
+
+  if(full_rows.length) {
+    for(var index1 =0; index1 < not_full_rows.length; ++index1) {
+      var not_full_row = not_full_rows[index1];
+      console.log("processing not full row:" + not_full_row);
+      var move_down = 0;
+      for(var index2 =0; index2< full_rows.length; ++index2) {
+        var full_row = full_rows[index2];
+        if(full_row > not_full_row) {
+          ++move_down;
+        }
+      }
+      if(move_down) {
+        moveRowDown(not_full_row, move_down);
+      }
+    }
+  }
+
+  console.log("process rows finished.");
+}
+
+function checkRowFull() {
+  var score = 0;
+  var score_increase = 1;
+  var full_rows = [];
+  var not_full_rows = [];
+  for(var row = Constants.MAX_ROW_DEFAULT - 1; row >= 0; --row) {
+    var taken = 0;
+    for(var col = 0; col < Constants.MAX_COLUMN_DEFAULT; ++col) {
+      if(boardCells[cellIndex(col, row)].taken) {
+        ++taken;
+      }
+    }
+    
+    if( taken == Constants.MAX_COLUMN_DEFAULT ) {
+      score += score_increase;
+      score_increase *= 2;
+      full_rows.push(row);
+    } else if (taken >0) {
+      not_full_rows.push(row);
+    }
+  }
+
+  console.log("rows: [" + full_rows + "] is full, got score: "+ score);
+  console.log("rows: [" + not_full_rows + "] has block but not full");
+  processRows(full_rows, not_full_rows);
+  return score;
+}
+
+function parkBlock(block) {
   console.log("state:" + block.currentState);
 
   var state = block.currentState;
@@ -51,17 +129,30 @@ function packBlock(block) {
       }
     }
   }
+
+  checkRowFull();
+}
+
+function canGoDown() {
+  return checkCollision(Block.currentBlock) != COLLISION.DOWN_COLLISION;
+}
+
+function isGameOver() {
+  return false;
 }
 
 function handleTimeout() {
   if (Block.currentBlock == null) {
     Block.createRandomBlock();
   } else {
-    if (checkCollision(Block.currentBlock) == COLLISION.DOWN_COLLISION) {
-      packBlock(Block.currentBlock);
-      Block.createRandomBlock();
-    } else {
+    if (canGoDown()) {
       //Block.GoDown();
+    } else {
+      parkBlock(Block.currentBlock);
+      if(isGameOver()) {
+      } else {
+        Block.createRandomBlock();  
+      }      
     }
   }
 }
@@ -109,7 +200,7 @@ function checkCollision(block) {
 
 function handleKeyDown() {
   if (Block.currentBlock) {
-    if (checkCollision(Block.currentBlock) != COLLISION.DOWN_COLLISION) {
+    if (canGoDown()) {
       Block.GoDown();
     }
   }
@@ -117,22 +208,8 @@ function handleKeyDown() {
 
 function handleKeyLeft() {
   Block.GoLeft();
-  /*
-  if (Block.currentBlock) {
-    if (Block.currentBlock.x > 0) {
-      Block.currentBlock.x -= Constants.BLOCK_SIZE_DEFAULT;
-    }
-  }
-  */
 }
 
 function handleKeyRight() {
   Block.GoRight();
-  /*
-  if (Block.currentBlock) {
-    if (Block.currentBlock.x < play_ground.width - Constants.BLOCK_SIZE_DEFAULT) {
-      Block.currentBlock.x += Constants.BLOCK_SIZE_DEFAULT;
-    }
-  }
-  */
 }

@@ -13,8 +13,8 @@ var KEY_PAUSE = 5
   Some value default to init the game
 */
 var BLOCK_SIZE_DEFAULT = 40
-var MAX_COLUMN_DEFAULT = 12
-var MAX_ROW_DEFAULT = 19
+var MAX_COLUMN_DEFAULT = 10
+var MAX_ROW_DEFAULT = 18
 var ORIGIN_X_DEFAULT = 4
 var ORIGIN_Y_DEFAULT = 0
 var TYPE_FIGURE_DEFAULT = 1
