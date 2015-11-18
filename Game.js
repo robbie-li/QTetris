@@ -47,7 +47,7 @@ function deleteFullRow(row) {
 function moveRowDown(row, move_down) {
   for(var col = 0; col < Constants.MAX_COLUMN_DEFAULT; ++col) {
     if(boardCells[cellIndex(col, row)].taken) {
-      console.log("move down block: (" + col + "," + row + "), down:" + move_down);
+      //console.log("move down block: (" + col + "," + row + "), down:" + move_down);
       boardCells[cellIndex(col, row)].taken = false;
       boardCells[cellIndex(col, row)].opacity = 0.0;
 
@@ -67,7 +67,7 @@ function processRows(full_rows, not_full_rows) {
   if(full_rows.length) {
     for(var index1 =0; index1 < not_full_rows.length; ++index1) {
       var not_full_row = not_full_rows[index1];
-      console.log("processing not full row:" + not_full_row);
+      //console.log("processing not full row:" + not_full_row);
       var move_down = 0;
       for(var index2 =0; index2< full_rows.length; ++index2) {
         var full_row = full_rows[index2];
@@ -81,7 +81,7 @@ function processRows(full_rows, not_full_rows) {
     }
   }
 
-  console.log("process rows finished.");
+  //console.log("process rows finished.");
 }
 
 function checkRowFull() {
@@ -122,7 +122,7 @@ function parkBlock(block) {
   for (var y = 0; y < 4; ++y) {
     for (var x = 0; x < 4; ++x) {
       if (state[blockIndex(x, y)] == "1") {
-        console.log("taken cell: cx:", blockX + x, ' ,cy:', blockY + y, ', x:', x, ', y:', y);
+        //console.log("taken cell: cx:", blockX + x, ' ,cy:', blockY + y, ', x:', x, ', y:', y);
         boardCells[cellIndex(blockX + x, blockY + y)].opacity = 0.8
         boardCells[cellIndex(blockX + x, blockY + y)].color = block.color
         boardCells[cellIndex(blockX + x, blockY + y)].taken = true
@@ -131,10 +131,6 @@ function parkBlock(block) {
   }
 
   checkRowFull();
-}
-
-function canGoDown() {
-  return checkCollision(Block.currentBlock) != COLLISION.DOWN_COLLISION;
 }
 
 function isGameOver() {
@@ -157,43 +153,149 @@ function handleTimeout() {
   }
 }
 
-function handleKeyUp() {
-  Block.Rotate();
+function isCellTaken(x, y) {
+  if( (x >= 0 && x < Constants.MAX_COLUMN_DEFAULT) && (y>=0 && y < Constants.MAX_ROW_DEFAULT)) {
+    return boardCells[cellIndex(x, y)].taken;  
+  }
+
+  return true;
 }
 
-var COLLISION = {
-  DOWN_COLLISION: 1,
-  LEFT_COLLISION: 2,
-  RIGHT_COLLISION: 3,
-  UP_COLLISION: 4,
-};
-
-function isCellTaken(x, y) {
-  return boardCells[cellIndex(x, y)].taken;
+function blockReachesTop(blockX, x) {
+  return blockX + x <= 0;
 }
 
 function blockReachesBottom(blockY, y) {
   return blockY + (y + 1) >= Constants.MAX_ROW_DEFAULT;
 }
 
-function checkCollision(block) {
-  var state = block.currentState;
-  var blockX = block.x / Constants.BLOCK_SIZE_DEFAULT;
-  var blockY = block.y / Constants.BLOCK_SIZE_DEFAULT;
+function blockReachesLeft(blockX, x) {
+  return blockX + x <= 0;
+}
 
+function blockReachesRight(blockX, x) {
+  return blockX + (x + 1) >= Constants.MAX_COLUMN_DEFAULT;
+}
+
+function checkCollisionUp(state, blockX, blockY) {
   for (var y = 3; y >= 0; --y) {
     for (var x = 0; x < 4; ++x) {
       if (state[blockIndex(x, y)] == "1") {
-        if (blockReachesBottom(blockY, y)) {
-          console.log('reach bottom, blockY:' + blockY + ', x:' + x + ', y:' + y);
-          return COLLISION.DOWN_COLLISION;
+        if (blockReachesTop(blockY, y)) {
+          console.log('reach top, blockY:' + blockY + ', x:' + x + ', y:' + y);
+          return true;
         }
 
-        if (isCellTaken(blockX + x, blockY + y + 1)) {
-          console.log('lower block taken, blockY:' + blockY + ', x:' + x + ', y:' + y);
-          return COLLISION.DOWN_COLLISION;
+        if (isCellTaken(blockX + x, blockY + y - 1)) {
+          console.log('upper block taken, blockY:' + blockY + ', x:' + x + ', y:' + y);
+          return true;
         }
       }
+    }
+  }
+
+  return false;
+}
+
+function blockReachesEdges(blockX, blockY, x, y) {
+  if( blockX + x < 0 || blockX + x >= Constants.MAX_COLUMN_DEFAULT ) {
+    //console.log('reach h edge, blockX:' + blockX + ', x:' + x);
+    return true;
+  }
+
+  if( blockY + y < 0 || blockY + y >= Constants.MAX_ROW_DEFAULT ) {
+    //console.log('reach v edge, blockY:' + blockY + ', y:' + y);
+    return true;
+  }
+
+  return false;
+}
+
+function checkCollision(state, blockX, blockY) {
+  for (var y = 0; y < 4; ++y) {
+    for (var x = 0; x < 4; ++x) {
+      if (state[blockIndex(x, y)] == "1") {
+        if (blockReachesEdges(blockX, blockY, x, y)) {
+          return true;
+        }
+
+        if (isCellTaken(blockX + x, blockY + y)) {
+          //console.log('cell is taken, bX:'+ blockX +', bY:' + blockY + ', x:' + x + ', y:' + y);
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+function canGoDown() {
+  var block = Block.currentBlock;
+  var blockX = block.x / Constants.BLOCK_SIZE_DEFAULT;
+  var blockY = block.y / Constants.BLOCK_SIZE_DEFAULT;
+  return !checkCollision(block.currentState, blockX, blockY+1);
+}
+
+function canGoLeft() {
+  var block = Block.currentBlock;
+  var blockX = block.x / Constants.BLOCK_SIZE_DEFAULT;
+  var blockY = block.y / Constants.BLOCK_SIZE_DEFAULT;
+  return !checkCollision(block.currentState, blockX-1, blockY);
+}
+
+function canGoRight() {
+  var block = Block.currentBlock;
+  var blockX = block.x / Constants.BLOCK_SIZE_DEFAULT;
+  var blockY = block.y / Constants.BLOCK_SIZE_DEFAULT;
+  return !checkCollision(block.currentState, blockX+1, blockY);
+}
+
+function canRotate() {
+  var block = Block.currentBlock;
+  var state = block.nextState;
+
+  if( state == block.currentState ) {
+    return { fit: true, h: 0, v: 0 };
+  }
+  
+  var blockX = block.x / Constants.BLOCK_SIZE_DEFAULT;
+  var blockY = block.y / Constants.BLOCK_SIZE_DEFAULT;
+
+  if(!checkCollision(state, blockX, blockY)) {
+    //console.log('no collision for rotate');
+    return { fit: true, h: 0, v: 0 };
+  } else {
+    for( var moveX = 0; moveX < 4; ++moveX ) {
+      for( var moveY = 0; moveY < 4; ++moveY ) {
+        if( !checkCollision(state, blockX + moveX, blockY + moveY)) {
+          //console.log('found fit, moveX:' + moveX + ', moveY:'+moveY);
+          return {fit: true, h: moveX, v: moveY};
+        }
+        if( !checkCollision(state, blockX - moveX, blockY + moveY)) {
+          //console.log('found fit, moveX:' + (-moveX) + ', moveY:'+moveY);
+          return {fit: true, h: -moveX, v: moveY};
+        }
+        if( !checkCollision(state, blockX + moveX, blockY - moveY)) {
+          //console.log('found fit, moveX:' + moveX + ', moveY:'+(-moveY));
+          return {fit: true, h: moveX, v: -moveY};
+        }
+        if( !checkCollision(state, blockX - moveX, blockY - moveY)) {
+          //console.log('found fit, moveX:' + (-moveX) + ', moveY:'+ (-moveY));
+          return {fit: true, h: -moveX, v: -moveY};
+        }
+      }
+    }
+  }
+
+  return {fit: false, h: 0, v: 0};
+}
+
+function handleKeyUp() {
+  if (Block.currentBlock) {
+    var result = canRotate();
+    if( result.fit ) {
+      Block.Rotate(result.h, result.v);
     }
   }
 }
@@ -207,9 +309,17 @@ function handleKeyDown() {
 }
 
 function handleKeyLeft() {
-  Block.GoLeft();
+  if (Block.currentBlock) {
+    if (canGoLeft()) {
+      Block.GoLeft();
+    }
+  }
 }
 
 function handleKeyRight() {
-  Block.GoRight();
+   if (Block.currentBlock) {
+    if (canGoRight()) {
+      Block.GoRight();
+    }
+  }
 }

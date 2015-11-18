@@ -1,6 +1,5 @@
 var componentBlock = null;
 var currentBlock = null;
-var currentBlockState = 0x0000;
 
 var componentI = Qt.createComponent("BlockI.qml");
 var componentJ = Qt.createComponent("BlockJ.qml");
@@ -107,8 +106,10 @@ function GoRight() {
   }
 }
 
-function Rotate() {
+function Rotate(h, v) {
   if (currentBlock) {
     currentBlock.index = (currentBlock.index + 1) % 4;
+    currentBlock.x += Constants.BLOCK_SIZE_DEFAULT * h;
+    currentBlock.y += Constants.BLOCK_SIZE_DEFAULT * v;
   }
 }
