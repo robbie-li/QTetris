@@ -137,18 +137,25 @@ function isGameOver() {
   return false;
 }
 
+var wait = 0;
+
 function handleTimeout() {
   if (Block.currentBlock == null) {
     Block.createRandomBlock();
   } else {
     if (canGoDown()) {
-      //Block.GoDown();
+      Block.GoDown();
     } else {
-      parkBlock(Block.currentBlock);
-      if(isGameOver()) {
+      if (wait == 2) {
+        wait = 0;
+        parkBlock(Block.currentBlock);
+        if(isGameOver()) {
+        } else {
+          Block.createRandomBlock();  
+        }        
       } else {
-        Block.createRandomBlock();  
-      }      
+        ++wait;
+      }
     }
   }
 }
